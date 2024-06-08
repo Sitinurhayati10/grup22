@@ -1,0 +1,8 @@
+streamlit
+scikit-learn==1.2.2
+pandas==2.2.1
+Pillow==10.2.0
+google-api-python-client==2.69.0
+httplib2==0.20.4
+googledriver
+requests==2.31.0
