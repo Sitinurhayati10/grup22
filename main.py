@@ -1,8 +1,6 @@
 import streamlit as st
 import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer
-from googledriver import download
-from sklearn.svm import SVC
 import pandas as pd
 from io import BytesIO
 from PIL import Image
@@ -94,23 +92,23 @@ if st.button("Prediksi"):
         st.warning("Mohon isi deskripsi buku terlebih dahulu.")
     else:
         st.info("Sedang melakukan prediksi...")
-       
-        #unzip model svm
+
+        # Unzip model SVM
         with zipfile.ZipFile('svm_model.zip', 'r') as zip_ref:
-             zip_ref.extractall()
+            zip_ref.extractall()
              
         # Load model SVM dan vectorizer
-        with open("./svm_model.pkl", 'rb') as file:
+        with open("svm_model.pkl", 'rb') as file:
             loaded_model = pickle.load(file)
         
-        with open("./tfidf_vectorizer.pkl", 'rb') as file:
+        with open("tfidf_vectorizer.pkl", 'rb') as file:
             tfidf = pickle.load(file)
         
         # Preprocessing deskripsi buku
         book_description_processed = [stem_text(remove_sw(removepunc(lowercase(book_description))))]
 
         # Membaca data X_train
-        X_train = pd.read_csv("./X_train_tfidf.csv")  # Ubah sesuai dengan lokasi yang benar
+        X_train = pd.read_csv("X_train_tfidf.csv")  # Ubah sesuai dengan lokasi yang benar
         
         # Menerapkan pemrosesan teks pada data X_train
         X_train['Combined_Text'] = X_train['Combined_Text'].apply(lowercase)
