@@ -6,7 +6,6 @@ from io import BytesIO
 from PIL import Image
 import base64
 import zipfile
-import os
 
 # Fungsi untuk memuat gambar sebagai base64
 def load_image_as_base64(image_path):
@@ -118,7 +117,7 @@ if st.button("Prediksi"):
         X_train['Combined_Text'] = X_train['Combined_Text'].apply(stem_text)
         
         # Membuat dan melatih tfidf vectorizer dari data X_train
-        tfidf = TfidfVectorizer(max_features=40530)
+        tfidf = TfidfVectorizer()
         X_train_tfidf = tfidf.fit_transform(X_train['Combined_Text']).toarray()
 
         # Transformasi deskripsi buku menggunakan TfidfVectorizer yang dimuat
