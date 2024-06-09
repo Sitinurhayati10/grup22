@@ -1,7 +1,6 @@
 import streamlit as st
 import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import SVC
 import pandas as pd
 from io import BytesIO
 from PIL import Image
@@ -146,42 +145,33 @@ if st.button("Prediksi"):
         try:
             with open(model_path, 'rb') as file:
                 loaded_model = pickle.load(file)
-        except pickle.UnpicklingError as e:
+        except Exception as e:
             st.error(f"Error loading the model: {e}")
             st.stop()
         
         try:
             with open(vectorizer_path, 'rb') as file:
                 tfidf = pickle.load(file)
-        except pickle.UnpicklingError as e:
+        except Exception as e:
             st.error(f"Error loading the vectorizer: {e}")
             st.stop()
 
         # Preprocess book description
         book_description_processed = [stem_text(remove_sw(removepunc(lowercase(book_description))))]
 
-        # Read training data
+        # Transform book description using the loaded TfidfVectorizer
         try:
-            X_train = pd.read_csv(data_path)  # Adjust the path as needed
-        except FileNotFoundError as e:
-            st.error(f"Training data file not found: {e}")
+            book_description_tfidf = tfidf.transform(book_description_processed).toarray()
+        except Exception as e:
+            st.error(f"Error transforming the book description: {e}")
             st.stop()
 
-        # Apply text processing to training data
-        X_train['Combined_Text'] = X_train['Combined_Text'].apply(lowercase)
-        X_train['Combined_Text'] = X_train['Combined_Text'].apply(removepunc)
-        X_train['Combined_Text'] = X_train['Combined_Text'].apply(remove_sw)
-        X_train['Combined_Text'] = X_train['Combined_Text'].apply(stem_text)
-        
-        # Train the TfidfVectorizer with training data
-        tfidf = TfidfVectorizer(max_features=40530)  # Adjust max_features as needed
-        X_train_tfidf = tfidf.fit_transform(X_train['Combined_Text']).toarray()
-
-        # Transform book description using the loaded TfidfVectorizer
-        book_description_tfidf = tfidf.transform(book_description_processed).toarray()
-
         # Predict book genre
-        predictions = loaded_model.predict(book_description_tfidf)
+        try:
+            predictions = loaded_model.predict(book_description_tfidf)
+        except Exception as e:
+            st.error(f"Error making prediction: {e}")
+            st.stop()
 
         # Map prediction to genre
         genre_mapping = {
