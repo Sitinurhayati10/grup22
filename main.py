@@ -95,16 +95,16 @@ if st.button("Prediksi"):
         st.info("Sedang melakukan prediksi...")
 
         # Unzip model SVM
-        model_zip_path = os.path.join(os.getcwd(), 'svm_model.zip')
+        model_zip_path = 'svm_model.zip'
         with zipfile.ZipFile(model_zip_path, 'r') as zip_ref:
-            zip_ref.extractall(os.getcwd())
+            zip_ref.extractall()
              
         # Load model SVM dan vectorizer
-        model_path = os.path.join(os.getcwd(), 'svm_model.pkl')
+        model_path = 'svm_model.pkl'
         with open(model_path, 'rb') as file:
             loaded_model = pickle.load(file)
         
-        vectorizer_path = os.path.join(os.getcwd(), 'tfidf_vectorizer.pkl')
+        vectorizer_path = 'tfidf_vectorizer.pkl'
         with open(vectorizer_path, 'rb') as file:
             tfidf = pickle.load(file)
         
@@ -112,7 +112,7 @@ if st.button("Prediksi"):
         book_description_processed = [stem_text(remove_sw(removepunc(lowercase(book_description))))]
 
         # Membaca data X_train
-        x_train_path = os.path.join(os.getcwd(), 'X_train_tfidf.csv')
+        x_train_path = 'X_train_tfidf.csv'
         X_train = pd.read_csv(x_train_path)
         
         # Menerapkan pemrosesan teks pada data X_train
