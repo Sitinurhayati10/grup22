@@ -1,6 +1,7 @@
 import streamlit as st
 import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.svm import SVC
 import pandas as pd
 from io import BytesIO
 from PIL import Image
@@ -36,6 +37,19 @@ def save_response_content(response, destination):
         for chunk in response.iter_content(CHUNK_SIZE):
             if chunk:  # filter out keep-alive new chunks
                 f.write(chunk)
+
+    # Verify if the downloaded file is a valid pickle file
+    if not is_valid_pickle_file(destination):
+        os.remove(destination)
+        raise ValueError(f"Downloaded file '{destination}' is not a valid pickle file.")
+
+def is_valid_pickle_file(file_path):
+    try:
+        with open(file_path, 'rb') as file:
+            pickle.load(file)
+        return True
+    except Exception:
+        return False
 
 # Function to load image as base64
 def load_image_as_base64(image_path):
