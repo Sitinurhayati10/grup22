@@ -1,67 +1,22 @@
 import streamlit as st
 import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer
+from googledriver import download
+from sklearn.svm import SVC
 import pandas as pd
 from io import BytesIO
 from PIL import Image
 import base64
-import requests
-import os
+import zipfile
 
-# Function to download files from Google Drive
-def download_file_from_google_drive(file_id, destination):
-    URL = "https://drive.google.com/uc?export=download"
-
-    session = requests.Session()
-
-    response = session.get(URL, params={'id': file_id}, stream=True)
-    token = get_confirm_token(response)
-
-    if token:
-        params = {'id': file_id, 'confirm': token}
-        response = session.get(URL, params=params, stream=True)
-
-    save_response_content(response, destination)
-
-def get_confirm_token(response):
-    for key, value in response.cookies.items():
-        if key.startswith('download_warning'):
-            return value
-    return None
-
-def save_response_content(response, destination):
-    CHUNK_SIZE = 32768
-
-    with open(destination, "wb") as f:
-        for chunk in response.iter_content(CHUNK_SIZE):
-            if chunk:  # filter out keep-alive new chunks
-                f.write(chunk)
-
-    # Verify if the downloaded file is a valid pickle file
-    if not is_valid_pickle_file(destination):
-        os.remove(destination)
-        raise ValueError(f"Downloaded file '{destination}' is not a valid pickle file.")
-
-def is_valid_pickle_file(file_path):
-    try:
-        with open(file_path, 'rb') as file:
-            pickle.load(file)
-        return True
-    except Exception:
-        return False
-
-# Function to load image as base64
+# Fungsi untuk memuat gambar sebagai base64
 def load_image_as_base64(image_path):
-    try:
-        image = Image.open(image_path)
-        buffered = BytesIO()
-        image.save(buffered, format="PNG")
-        return base64.b64encode(buffered.getvalue()).decode()
-    except Exception as e:
-        st.error(f"Error loading image: {e}")
-        return ""
+    image = Image.open(image_path)
+    buffered = BytesIO()
+    image.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode()
 
-# Functions for text processing
+# Fungsi untuk pemrosesan teks
 def lowercase(text):
     return text.lower()
 
@@ -73,8 +28,8 @@ def remove_sw(text):
     return ' '.join([word for word in text.split() if word not in stopwords])
 
 def stem_text(text):
-    # Implement stemming logic here
-    return text  # Replace with actual stemming logic
+    # Implementasi stemming yang sesuai
+    return text  # Ganti dengan logika stemming yang sesuai
 
 # Set the background colors and text color
 st.markdown(
@@ -121,18 +76,17 @@ st.markdown(
 # Load the logo image
 logo_base64 = load_image_as_base64("BookGenie.png")
 
-if logo_base64:
-    st.markdown(
-        f"""
-        <div style='display: flex; align-items: center; gap: 15px;' class='custom-font'>
-            <img src='data:image/png;base64,{logo_base64}' width='50'>
-            <h1 style='margin: 0;'>BookGenie</h1>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+st.markdown(
+    f"""
+    <div style='display: flex; align-items: center; gap: 15px;' class='custom-font'>
+        <img src='data:image/png;base64,{logo_base64}' width='50'>
+        <h1 style='margin: 0;'>BookGenie</h1>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
-# Text input for book description
+# Kolom input teks untuk deskripsi buku
 book_description = st.text_area("Masukkan deskripsi buku:")
 
 if st.button("Prediksi"):
@@ -140,63 +94,44 @@ if st.button("Prediksi"):
         st.warning("Mohon isi deskripsi buku terlebih dahulu.")
     else:
         st.info("Sedang melakukan prediksi...")
-
-        # Google Drive file IDs
-        model_file_id = 'your_model_file_id'
-        vectorizer_file_id = 'your_vectorizer_file_id'
-
-        # File paths
-        model_path = 'svm_model.pkl'
-        vectorizer_path = 'tfidf_vectorizer.pkl'
-
-        # Download files from Google Drive if they don't exist
-        if not os.path.exists(model_path):
-            try:
-                download_file_from_google_drive(model_file_id, model_path)
-            except ValueError as e:
-                st.error(f"Error downloading the model: {e}")
-                st.stop()
-
-        if not os.path.exists(vectorizer_path):
-            try:
-                download_file_from_google_drive(vectorizer_file_id, vectorizer_path)
-            except ValueError as e:
-                st.error(f"Error downloading the vectorizer: {e}")
-                st.stop()
-
-        # Load SVM model and vectorizer
-        try:
-            with open(model_path, 'rb') as file:
-                loaded_model = pickle.load(file)
-        except Exception as e:
-            st.error(f"Error loading the model: {e}")
-            st.stop()
+       
+        #unzip model svm
+        with zipfile.ZipFile('svm_model.zip', 'r') as zip_ref:
+             zip_ref.extractall()
+             
+        # Load model SVM dan vectorizer
+        with open("./svm_model.pkl", 'rb') as file:
+            loaded_model = pickle.load(file)
+            
+            
+        with zipfile.ZipFile('tfidf_vectorizer.zip', 'r') as zip_ref:
+             zip_ref.extractall()
+        with open("./tfidf_vectorizer.pkl", 'rb') as file:
+            tfidf = pickle.load(file)
         
-        try:
-            with open(vectorizer_path, 'rb') as file:
-                tfidf = pickle.load(file)
-        except Exception as e:
-            st.error(f"Error loading the vectorizer: {e}")
-            st.stop()
-
-        # Preprocess book description
+        # Preprocessing deskripsi buku
         book_description_processed = [stem_text(remove_sw(removepunc(lowercase(book_description))))]
 
-        # Transform book description using the loaded TfidfVectorizer
-        try:
-            book_description_tfidf = tfidf.transform(book_description_processed).toarray()
-        except Exception as e:
-            st.error(f"Error transforming the book description: {e}")
-            st.stop()
+        # Membaca data X_train
+        X_train = pd.read_csv("./X_train_tfidf.csv")  # Ubah sesuai dengan lokasi yang benar
+        
+        # Menerapkan pemrosesan teks pada data X_train
+        X_train['Combined_Text'] = X_train['Combined_Text'].apply(lowercase)
+        X_train['Combined_Text'] = X_train['Combined_Text'].apply(removepunc)
+        X_train['Combined_Text'] = X_train['Combined_Text'].apply(remove_sw)
+        X_train['Combined_Text'] = X_train['Combined_Text'].apply(stem_text)
+        
+        # Membuat dan melatih tfidf vectorizer dari data X_train
+        tfidf = TfidfVectorizer(max_features=40530)  # Atur max_features sesuai kebutuhan
+        X_train_tfidf = tfidf.fit_transform(X_train['Combined_Text']).toarray()
 
-        # Predict book genre
-        try:
-            predictions = loaded_model.predict(book_description_tfidf)
-        except Exception as e:
-            st.error(f"Error making prediction: {e}")
-            st.stop()
+        # Transformasi deskripsi buku menggunakan TfidfVectorizer yang dimuat
+        book_description_tfidf = tfidf.transform(book_description_processed).toarray()
 
-        # Map prediction to genre
+        # Prediksi genre buku
+        predictions = loaded_model.predict(book_description_tfidf)
+
+        # Map hasil prediksi ke genre yang sesuai
         genre_mapping = {
             0: "adventure",
             1: "crime",
@@ -208,7 +143,7 @@ if st.button("Prediksi"):
         
         predicted_genre = genre_mapping[predictions[0]]
 
-        # Display prediction result
+        # Tampilkan hasil prediksi
         st.write("Hasil Prediksi:")
         st.title(predicted_genre)
         st.success("Prediksi selesai!")
