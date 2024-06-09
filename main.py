@@ -7,7 +7,6 @@ from io import BytesIO
 from PIL import Image
 import base64
 import requests
-import zipfile
 import os
 
 # Function to download files from Google Drive
@@ -147,10 +146,15 @@ if st.button("Prediksi"):
         try:
             with open(model_path, 'rb') as file:
                 loaded_model = pickle.load(file)
+        except pickle.UnpicklingError as e:
+            st.error(f"Error loading the model: {e}")
+            st.stop()
+        
+        try:
             with open(vectorizer_path, 'rb') as file:
                 tfidf = pickle.load(file)
-        except FileNotFoundError as e:
-            st.error(f"File not found: {e}")
+        except pickle.UnpicklingError as e:
+            st.error(f"Error loading the vectorizer: {e}")
             st.stop()
 
         # Preprocess book description
