@@ -1,11 +1,11 @@
 import streamlit as st
 import pickle
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.svm import SVC
 import pandas as pd
 from io import BytesIO
 from PIL import Image
 import base64
+import zipfile
 
 # Fungsi untuk memuat gambar sebagai base64
 def load_image_as_base64(image_path):
@@ -93,18 +93,22 @@ if st.button("Prediksi"):
     else:
         st.info("Sedang melakukan prediksi...")
 
+        # Unzip model SVM
+        with zipfile.ZipFile('svm_model.zip', 'r') as zip_ref:
+            zip_ref.extractall()
+             
         # Load model SVM dan vectorizer
-        with open("./svm_model.pkl", 'rb') as file:
+        with open("svm_model.pkl", 'rb') as file:
             loaded_model = pickle.load(file)
         
-        with open("./tfidf_vectorizer.pkl", 'rb') as file:
+        with open("tfidf_vectorizer.pkl", 'rb') as file:
             tfidf = pickle.load(file)
         
         # Preprocessing deskripsi buku
         book_description_processed = [stem_text(remove_sw(removepunc(lowercase(book_description))))]
 
         # Membaca data X_train
-        X_train = pd.read_csv("./X_train_tfidf.csv")  # Ubah sesuai dengan lokasi yang benar
+        X_train = pd.read_csv("X_train_tfidf.csv")  # Ubah sesuai dengan lokasi yang benar
         
         # Menerapkan pemrosesan teks pada data X_train
         X_train['Combined_Text'] = X_train['Combined_Text'].apply(lowercase)
@@ -113,7 +117,7 @@ if st.button("Prediksi"):
         X_train['Combined_Text'] = X_train['Combined_Text'].apply(stem_text)
         
         # Membuat dan melatih tfidf vectorizer dari data X_train
-        tfidf = TfidfVectorizer(max_features=5)  # Atur max_features sesuai kebutuhan
+        tfidf = TfidfVectorizer(max_features=40530)  # Atur max_features sesuai kebutuhan
         X_train_tfidf = tfidf.fit_transform(X_train['Combined_Text']).toarray()
 
         # Transformasi deskripsi buku menggunakan TfidfVectorizer yang dimuat
